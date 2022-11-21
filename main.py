@@ -6,6 +6,7 @@ from mitmproxy.http import HTTPFlow, Request, Response
 
 SAVE_FILE = "whats_going_on.txt"
 
+
 @dataclass(frozen=True)
 class Coordinates:
     lat: float
