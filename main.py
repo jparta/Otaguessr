@@ -118,7 +118,7 @@ class Guessr:
         if picture_id:
             self.game_state[session_id] = picture_id
         else:
-            write_out("No new picture id given in response")
+            write_out("No new picture id given in response, game is over")
 
 
 addons = [Guessr(SAVE_FILE)]
