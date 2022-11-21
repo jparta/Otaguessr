@@ -1,4 +1,0 @@
-https://api.otaguessr.fi/api/play
-{"name":"bc6ad9e43aa07ade113d208842b893d6"}
-{'connect.sid': 's%3Amzt6Nu7C89mTak9bp8U6IlvGkmhp29aq.ONShLCrYhdAuEExve1wptcn4zJNKo5XF4oRCMtU7CxI'}
--------
