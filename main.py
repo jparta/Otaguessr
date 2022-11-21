@@ -100,7 +100,6 @@ class Guessr:
         current_image_id = self.game_state.get(session_id)
         if current_image_id is None:
             write_out("No current image found by session id")
-            return
         request_json, response_json = try_read_json(flow)
         # Coordinates in answer
         if request_json and isinstance(request_json, dict):
