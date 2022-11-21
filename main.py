@@ -73,11 +73,15 @@ class Guessr:
         if flow.request.pretty_host != self.host:
             return
         write_out(flow.request.pretty_url)
-        session_id = flow.request.cookies.get(self.session_id_cookie_key)
+        if flow.response:
+            session_cookie = flow.response.cookies.get(self.session_id_cookie_key)
+            session_id = session_cookie[0] if session_cookie else None
+        else:
+            session_id = None
         if session_id is None:
             write_out(f"No session id cookie by key '{self.session_id_cookie_key}'")
             return
-        write_out(f"{session_id =}")
+        write_out(f"{session_id = }")
         if flow.request.path == self.play_path:
             self.handle_play_response(flow, session_id)
         elif flow.request.path == self.answer_path:
