@@ -23,7 +23,8 @@ def valid_guess_row(row: list):
         -90 <= row[1] <= 90 and
         isinstance(row[2], float) and
         -180 <= row[2] <= 180 and
-        isinstance(row[3], (float, int))
+        isinstance(row[3], (float, int)) and
+        0 <= row[3] <= 30000
     ):
         return True
     else:
