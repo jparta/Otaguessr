@@ -1,1 +1,7 @@
 mitmproxy
+geopy
+scipy
+pandas
+pandas-stubs
+xlwings
+pyarrow
