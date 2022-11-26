@@ -117,7 +117,7 @@ class Guessr:
         if flow.request.pretty_host != self.host:
             return
         self.events_out.write("-------")
-        self.events_out.write(flow.request.pretty_url)
+        self.events_out.write(f"Response: {flow.request.pretty_url}")
         if flow.response:
             session_cookie = flow.response.cookies.get(self.session_id_cookie_key)
             session_id = session_cookie[0] if session_cookie else None
