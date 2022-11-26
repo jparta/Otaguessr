@@ -4,8 +4,8 @@ from pprint import pprint
 
 from mitmproxy.http import HTTPFlow, Request, Response
 
-SAVE_FILE = "whats_going_on.txt"
 
+EVENTS_FILE = "whats_going_on.txt"
 
 @dataclass(frozen=True)
 class Coordinates:
@@ -26,8 +26,16 @@ class Question:
         return len(self.answers) >= 3
 
 
-def write_out(line):
-    with open(SAVE_FILE, "a") as f:
+class EventsOut():
+    def __init__(self, filepath) -> None:
+        self.filepath = filepath
+
+    def clear(self):
+        with open(self.filepath, "w"):
+            pass
+
+    def write(self, line):
+        with open(self.filepath, "a") as f:
         print(line, file=f)
 
 
@@ -57,7 +65,11 @@ def try_read_json(flow: HTTPFlow) -> tuple:
 
 
 class Guessr:
-    def __init__(self, save_file) -> None:
+    def __init__(
+        self,
+        events_out: EventsOut,
+    ) -> None:
+        self.events_out = events_out
         self.host = "api.otaguessr.fi"
         self.play_path = "/api/play"
         self.answer_path = "/api/answer"
@@ -66,29 +78,28 @@ class Guessr:
         # Game state maps session ID (game ID) to current image (question / challenge)
         self.game_state: dict[str, str] = {}
         # Clear output
-        with open(save_file, "w"):
-            pass
+        self.events_out.clear()
 
     def response(self, flow: HTTPFlow):
         if flow.request.pretty_host != self.host:
             return
-        write_out(flow.request.pretty_url)
+        self.events_out.write(flow.request.pretty_url)
         if flow.response:
             session_cookie = flow.response.cookies.get(self.session_id_cookie_key)
             session_id = session_cookie[0] if session_cookie else None
         else:
             session_id = None
         if session_id is None:
-            write_out(f"No session id cookie by key '{self.session_id_cookie_key}'")
+            self.events_out.write(f"No session id cookie by key '{self.session_id_cookie_key}'")
             return
-        write_out(f"{session_id = }")
+        self.events_out.write(f"{session_id = }")
         if flow.request.path == self.play_path:
             self.handle_play_response(flow, session_id)
         elif flow.request.path == self.answer_path:
             self.handle_answer_response(flow, session_id)
         else:
-            write_out("No path match")
-        write_out("-------")
+            self.events_out.write("No path match")
+        self.events_out.write("-------")
 
     def handle_play_response(self, flow: HTTPFlow, session_id: str):
         _, response_json = try_read_json(flow)
@@ -98,13 +109,13 @@ class Guessr:
         else:
             picture_id = None
         if picture_id:
-            write_out(f"{picture_id = }")
+            self.events_out.write(f"{picture_id = }")
             self.game_state[session_id] = picture_id
 
     def handle_answer_response(self, flow: HTTPFlow, session_id: str):
         current_image_id = self.game_state.get(session_id)
         if current_image_id is None:
-            write_out("No current image found by session id")
+            self.events_out.write("No current image found by session id")
         request_json, response_json = try_read_json(flow)
         # Coordinates in answer
         if request_json and isinstance(request_json, dict):
@@ -119,11 +130,13 @@ class Guessr:
         else:
             score = picture_id = None
         to_spreadsheet = f"{current_image_id}\t{answer_lat}\t{answer_lon}\t{score}"
-        write_out(to_spreadsheet)
+        self.events_out.write(to_spreadsheet)
         if picture_id:
             self.game_state[session_id] = picture_id
+            self.events_out.write(f"New picture id: {picture_id}")
         else:
-            write_out("No new picture id given in response, game is over")
+            self.events_out.write("No new picture id given in response, game is over")
 
 
-addons = [Guessr(SAVE_FILE)]
+events_out = EventsOut(EVENTS_FILE)
+addons = [Guessr(events_out)]
