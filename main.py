@@ -108,7 +108,7 @@ class Guessr:
         self.answer_path = "/api/answer"
         self.paths = [self.play_path, self.answer_path]
         self.session_id_cookie_key = "connect.sid"
-        # Game state maps session ID (game ID) to current image (question / challenge)
+        # Game state maps session ID (game ID) to current picture (question / challenge)
         self.game_state: dict[str, str] = {}
         # Clear output
         self.events_out.clear()
@@ -146,8 +146,8 @@ class Guessr:
             self.game_state[session_id] = picture_id
 
     def handle_answer_response(self, flow: HTTPFlow, session_id: str):
-        current_image_id = self.game_state.get(session_id)
-        if current_image_id is None:
+        current_picture_id = self.game_state.get(session_id)
+        if current_picture_id is None:
             self.events_out.write("No current image found by session id")
         request_json, response_json = try_read_json(flow)
         # Coordinates in answer
@@ -162,7 +162,7 @@ class Guessr:
             picture_id = response_json.get("nextPicture")
         else:
             score = picture_id = None
-        to_spreadsheet = f"{current_image_id}\t{answer_lat}\t{answer_lon}\t{score}"
+        to_spreadsheet = f"{current_picture_id}\t{answer_lat}\t{answer_lon}\t{score}"
         self.events_out.write(to_spreadsheet)
         if picture_id:
             self.game_state[session_id] = picture_id
