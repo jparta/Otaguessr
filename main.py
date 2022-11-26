@@ -118,6 +118,7 @@ class Guessr:
             return
         self.events_out.write("-------")
         self.events_out.write(f"Response: {flow.request.pretty_url}")
+        self.events_out.write(f"Method: {flow.request.method}")
         if flow.response:
             session_cookie = flow.response.cookies.get(self.session_id_cookie_key)
             session_id = session_cookie[0] if session_cookie else None
