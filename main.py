@@ -28,24 +28,6 @@ def valid_guess_row(row: list):
     else:
         return False
 
-@dataclass(frozen=True)
-class Coordinates:
-    lat: float
-    lon: float
-
-
-class Question:
-    def __init__(self, id) -> None:
-        self.id = id
-        self.answers: set[Coordinates] = set()
-
-    def add_answer(self, coords: Coordinates):
-        if not self.has_triangle():
-            self.answers.add(coords)
-
-    def has_triangle(self):
-        return len(self.answers) >= 3
-
 
 class EventsOut():
     def __init__(self, filepath) -> None:
