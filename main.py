@@ -1,7 +1,8 @@
 import json
-from dataclasses import dataclass
-from pprint import pprint
+from datetime import datetime
+from pathlib import Path
 
+import pandas as pd
 from mitmproxy.http import HTTPFlow, Request, Response
 
 
@@ -39,7 +40,35 @@ class EventsOut():
 
     def write(self, line):
         with open(self.filepath, "a") as f:
-        print(line, file=f)
+            print(line, file=f)
+
+
+class Guesses():
+    def __init__(self, filepath: str | Path) -> None:
+        self.filepath = Path(filepath)
+        self.df = pd.read_parquet(filepath)
+
+    def save_to_file(self, path: Path | None = None):
+        if path is None:
+            path = self.filepath
+        self.df.to_parquet(path)
+
+    def add_guess(self, guess) -> int:
+        """Add guess, if valid, to the pile.
+        If added (was valid), return new guess count.
+        """
+        if not valid_guess_row(guess):
+            raise ValueError(f"Invalid guess row. Got {guess}")
+        new = pd.DataFrame([guess], columns=self.df.columns)
+        self.df = pd.concat([self.df, new])
+        self.save_to_file()
+        return len(self.df)
+
+    def create_backup(self):
+        filestem = self.filepath.stem
+        new_stem = f"{filestem}_backup_{int(datetime.utcnow().timestamp())}"
+        backup_filepath = self.filepath.with_stem(new_stem)
+        self.save_to_file(path=backup_filepath)
 
 
 def has_json_content_type(event: Request | Response):
