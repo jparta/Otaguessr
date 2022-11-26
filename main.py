@@ -116,6 +116,7 @@ class Guessr:
     def response(self, flow: HTTPFlow):
         if flow.request.pretty_host != self.host:
             return
+        self.events_out.write("-------")
         self.events_out.write(flow.request.pretty_url)
         if flow.response:
             session_cookie = flow.response.cookies.get(self.session_id_cookie_key)
@@ -132,7 +133,6 @@ class Guessr:
             self.handle_answer_response(flow, session_id)
         else:
             self.events_out.write("No path match")
-        self.events_out.write("-------")
 
     def handle_play_response(self, flow: HTTPFlow, session_id: str):
         _, response_json = try_read_json(flow)
