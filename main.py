@@ -6,6 +6,27 @@ from mitmproxy.http import HTTPFlow, Request, Response
 
 
 EVENTS_FILE = "whats_going_on.txt"
+GUESSES_FILE = "guesses.parquet"
+
+
+def valid_guess_row(row: list):
+    """Validate to be
+    string id, latitude, longitude, numeric score
+    """
+    length = 4
+    if (
+        len(row) == length and
+        isinstance(row[0], str) and
+        row[0] != "None" and
+        isinstance(row[1], float) and
+        -90 <= row[1] <= 90 and
+        isinstance(row[2], float) and
+        -180 <= row[2] <= 180 and
+        isinstance(row[3], (float, int))
+    ):
+        return True
+    else:
+        return False
 
 @dataclass(frozen=True)
 class Coordinates:
