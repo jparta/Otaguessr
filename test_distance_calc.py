@@ -11,7 +11,10 @@ points = [
     ("d6d73e4d84c92f8c5fff4340a5dce12f", 60.18508505, 24.83578026, 27669),
 ]
 
-def distance_from_truth(score: int | float):
+def score_to_distance(score: int | float):
+    """Distance from the real answer.
+    Derived by finding best fit using different models.
+    """
     if score < 0 or score > 30000:
         raise ValueError("score has to be between 0 and 30000")
     a = 30000
@@ -31,7 +34,7 @@ for point in points[1:]:
     coords = (point[1], point[2])
     score = point[3]
     locations.append(coords)
-    d = distance_from_truth(score)
+    d = score_to_distance(score)
     distances.append(d)
 
 print(f"{locations = }")
