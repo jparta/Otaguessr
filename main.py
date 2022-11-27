@@ -98,9 +98,14 @@ class Guesses():
         backup_filepath = self.backups_dir / backup_filename
         self.save_to_file(path=backup_filepath)
 
+    def get_guesses(self, pic: str) -> list[tuple]:
+        guesses_df = self.df.loc[self.df.iloc[:,0] == pic]
+        guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
+        return guesses_tuples
+
     def add_guess(self, guess) -> int:
         """Add guess, if valid, to the pile.
-        If added (was valid), return new guess count.
+        If added (was valid), return (pic, total) guess counts.
         """
         if not valid_guess_row(guess):
             raise ValueError(f"Invalid guess row. Got {guess}")
@@ -109,17 +114,18 @@ class Guesses():
         self.save_to_file()
         if self.time_to_create_backup():
             self.create_backup()
-        return len(self.df)
+        pic = guess[0]
+        guesses_now = self.get_guesses(pic)
+        return len(guesses_now), len(self.df)
 
     def estimate_true_location(self, pic: str) -> tuple | None:
         """Return estimate for location (lat, lon)
         if there are at least three previous guesses,
         otherwise return None.
         """
-        guesses_df = self.df.loc[self.df.iloc[:,0] == pic]
-        guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
-        if len(guesses_tuples) >= 3:
-            estimate = trilaterate(guesses_tuples)
+        guesses = self.get_guesses(pic)
+        if len(guesses) >= 3:
+            estimate = trilaterate(guesses)
             return estimate
         else:
             return None
@@ -223,7 +229,7 @@ class Guessr:
         self.events_out.write(to_spreadsheet)
         if current_picture_id is not None:
             new_count = self.guesses.add_guess(guess)
-            self.events_out.write(f"guess count: {new_count}")
+            self.events_out.write(f"guess count (pic, total): {new_count}")
         if picture_id:
             self.game_state[session_id] = picture_id
             self.events_out.write(f"New picture id: {picture_id}")
