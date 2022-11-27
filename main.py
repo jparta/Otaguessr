@@ -18,12 +18,13 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 #  * Use perfect locations (30k score)
 #  * Send estimates when 1) perfect scores not available and 2) estimate available
 
-def valid_guess_row(row: list):
+def valid_guess_row(row: tuple | list):
     """Validate to be
     string id, latitude, longitude, numeric score
     """
     length = 4
     if (
+        isinstance(row, (tuple, list)) and
         len(row) == length and
         isinstance(row[0], str) and
         row[0] != "None" and
@@ -103,7 +104,7 @@ class Guesses():
         guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
         return guesses_tuples
 
-    def add_guess(self, guess) -> int:
+    def add_guess(self, guess: tuple | list) -> tuple[int, int]:
         """Add guess, if valid, to the pile.
         If added (was valid), return (pic, total) guess counts.
         """
