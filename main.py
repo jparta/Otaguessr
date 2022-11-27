@@ -5,6 +5,8 @@ from pathlib import Path
 import pandas as pd
 from mitmproxy.http import HTTPFlow, Request, Response
 
+from trilateration import trilaterate
+
 
 EVENTS_FILE = "whats_going_on.txt"
 GUESSES_FILE = "guesses.parquet"
@@ -71,6 +73,19 @@ class Guesses():
         backup_filepath = self.filepath.with_stem(new_stem)
         self.save_to_file(path=backup_filepath)
 
+    def estimate_true_location(self, pic: str) -> tuple | None:
+        """Return estimate for location (lat, lon)
+        if there are at least two previous guesses,
+        otherwise return None.
+        """
+        guesses_df = self.df.loc[self.df.iloc[:,0] == pic]
+        guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
+        if len(guesses_tuples) >= 2:
+            estimate = trilaterate(guesses_tuples)
+            return estimate
+        else:
+            return None
+
 
 def has_json_content_type(event: Request | Response):
     content_type = event.headers.get("Content-Type")
@@ -101,8 +116,10 @@ class Guessr:
     def __init__(
         self,
         events_out: EventsOut,
+        guesses: Guesses,
     ) -> None:
         self.events_out = events_out
+        self.guesses = guesses
         self.host = "api.otaguessr.fi"
         self.play_path = "/api/play"
         self.answer_path = "/api/answer"
@@ -171,6 +188,26 @@ class Guessr:
         else:
             self.events_out.write("No new picture id given in response, game is over")
 
+    def request(self, flow):
+        if flow.request.pretty_host != self.host:
+            return
+        self.events_out.write("-------")
+        self.events_out.write(f"Request: {flow.request.pretty_url}")
+        self.events_out.write(f"Method: {flow.request.method}")
+        session_id = flow.request.cookies.get(self.session_id_cookie_key)
+        if session_id is None:
+            self.events_out.write(f"No session id cookie by key '{self.session_id_cookie_key}'")
+            return
+        self.events_out.write(f"{session_id = }")
+        current_picture_id = self.game_state.get(session_id)
+        if current_picture_id is None:
+            self.events_out.write("No current picture found by session id")
+            return
+        self.events_out.write(f"{current_picture_id = }")
+        location_estimate = self.guesses.estimate_true_location(current_picture_id)
+        self.events_out.write(f"{location_estimate = }")
+
 
 events_out = EventsOut(EVENTS_FILE)
-addons = [Guessr(events_out)]
+guesses = Guesses(GUESSES_FILE)
+addons = [Guessr(events_out, guesses)]
