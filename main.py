@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -10,7 +10,14 @@ from trilateration import trilaterate
 
 EVENTS_FILE = "whats_going_on.txt"
 GUESSES_FILE = "guesses.parquet"
+BACKUPS_DIR = "backups"
 
+Path(BACKUPS_DIR).mkdir(exist_ok=True)
+
+# TODO:
+#  * Capture handmade guesses
+#  * Use perfect locations (30k score)
+#  * Send estimates when 1) perfect scores not available and 2) estimate available
 
 def valid_guess_row(row: list):
     """Validate to be
@@ -47,14 +54,50 @@ class EventsOut():
 
 
 class Guesses():
-    def __init__(self, filepath: str | Path) -> None:
+    back_time_format = "%Y-%m-%dT%H-%M-%S-%Z"
+
+    def __init__(
+        self,
+        filepath: str | Path,
+        backups_dir: str | Path,
+    ) -> None:
         self.filepath = Path(filepath)
+        self.backups_dir = Path(backups_dir)
+        self.backup_interval = timedelta(minutes=10)
         self.df = pd.read_parquet(filepath)
 
     def save_to_file(self, path: Path | None = None):
         if path is None:
             path = self.filepath
         self.df.to_parquet(path)
+
+    def backup_filestem_suffix(self):
+        now_utc_aware = datetime.utcnow().replace(tzinfo=timezone.utc)
+        time_string = now_utc_aware.strftime(self.back_time_format)
+        return f"_backup_{time_string}"
+
+    def backup_filestem_time_parse(self, stem: str):
+        time_string = stem.split("_")[-1]
+        return datetime.strptime(time_string, self.back_time_format)
+
+    def time_to_create_backup(self) -> bool:
+        now = datetime.utcnow()
+        times = []
+        for path in self.backups_dir.iterdir():
+            dt = self.backup_filestem_time_parse(path.stem)
+            times.append(dt)
+        if times:
+            latest = max(times)
+            return now - latest >= self.backup_interval
+        else:
+            return True
+
+    def create_backup(self):
+        filestem = self.filepath.stem
+        new_stem = filestem + self.backup_filestem_suffix()
+        backup_filename = self.filepath.with_stem(new_stem).name
+        backup_filepath = self.backups_dir / backup_filename
+        self.save_to_file(path=backup_filepath)
 
     def add_guess(self, guess) -> int:
         """Add guess, if valid, to the pile.
@@ -65,13 +108,9 @@ class Guesses():
         new = pd.DataFrame([guess], columns=self.df.columns)
         self.df = pd.concat([self.df, new])
         self.save_to_file()
+        if self.time_to_create_backup():
+            self.create_backup()
         return len(self.df)
-
-    def create_backup(self):
-        filestem = self.filepath.stem
-        new_stem = f"{filestem}_backup_{int(datetime.utcnow().timestamp())}"
-        backup_filepath = self.filepath.with_stem(new_stem)
-        self.save_to_file(path=backup_filepath)
 
     def estimate_true_location(self, pic: str) -> tuple | None:
         """Return estimate for location (lat, lon)
@@ -209,5 +248,5 @@ class Guessr:
 
 
 events_out = EventsOut(EVENTS_FILE)
-guesses = Guesses(GUESSES_FILE)
+guesses = Guesses(GUESSES_FILE, BACKUPS_DIR)
 addons = [Guessr(events_out, guesses)]
