@@ -113,12 +113,12 @@ class Guesses():
 
     def estimate_true_location(self, pic: str) -> tuple | None:
         """Return estimate for location (lat, lon)
-        if there are at least two previous guesses,
+        if there are at least three previous guesses,
         otherwise return None.
         """
         guesses_df = self.df.loc[self.df.iloc[:,0] == pic]
         guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
-        if len(guesses_tuples) >= 2:
+        if len(guesses_tuples) >= 3:
             estimate = trilaterate(guesses_tuples)
             return estimate
         else:
