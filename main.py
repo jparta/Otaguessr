@@ -15,7 +15,6 @@ BACKUPS_DIR = "backups"
 Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
-#  * Capture handmade guesses
 #  * Use perfect locations (30k score)
 #  * Send estimates when 1) perfect scores not available and 2) estimate available
 
@@ -219,8 +218,12 @@ class Guessr:
             picture_id = response_json.get("nextPicture")
         else:
             score = picture_id = None
-        to_spreadsheet = f"{current_picture_id}\t{answer_lat}\t{answer_lon}\t{score}"
+        guess = (current_picture_id, answer_lat, answer_lon, score)
+        to_spreadsheet = "\t".join(map(str, guess))
         self.events_out.write(to_spreadsheet)
+        if current_picture_id is not None:
+            new_count = self.guesses.add_guess(guess)
+            self.events_out.write(f"guess count: {new_count}")
         if picture_id:
             self.game_state[session_id] = picture_id
             self.events_out.write(f"New picture id: {picture_id}")
