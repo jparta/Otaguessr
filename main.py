@@ -101,15 +101,16 @@ class Guesses:
         backup_filepath = self.backups_dir / backup_filename
         self.save_to_file(path=backup_filepath)
 
+    def total_guesses(self):
+        return len(self.df)
+
     def get_guesses(self, pic: str) -> list[tuple]:
         guesses_df = self.df.loc[self.df.iloc[:, 0] == pic]
         guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
         return guesses_tuples
 
-    def add_guess(self, guess: tuple | list) -> tuple[int, int]:
-        """Add guess, if valid, to the pile.
-        If added (was valid), return (pic, total) guess counts.
-        """
+    def add_guess(self, guess: tuple | list) -> None:
+        """Add guess, if valid, to the pile."""
         if not valid_guess_row(guess):
             raise ValueError(f"Invalid guess row. Got {guess}")
         new = pd.DataFrame([guess], columns=self.df.columns)
@@ -117,9 +118,6 @@ class Guesses:
         self.save_to_file()
         if self.time_to_create_backup():
             self.create_backup()
-        pic = guess[0]
-        guesses_now = self.get_guesses(pic)
-        return len(guesses_now), len(self.df)
 
     def estimate_true_location(self, pic: str) -> tuple[float, float] | None:
         """Return estimate for location (lat, lon)
@@ -203,8 +201,11 @@ class Guessr:
         # Clear output
         self.events_out.clear()
 
-    def output_pic_info(self, pic: str):
-        self.events_out.write(f"Picture id: {pic}")
+    def output_next_pic_info(self, pic: str):
+        self.events_out.write(f"Next picture id: {pic}")
+        guess_count = len(self.guesses.get_guesses(pic))
+        new_counts = (guess_count, self.guesses.total_guesses())
+        self.events_out.write(f"guess count (pic, total): {new_counts}")
         existing_guesses = self.guesses.get_guesses(pic)
         guesses_pretty = pformat(existing_guesses)
         self.events_out.write("existing guesses:")
@@ -245,7 +246,7 @@ class Guessr:
             picture_id = None
         if picture_id:
             self.game_state[session_id] = picture_id
-            self.output_pic_info(picture_id)
+            self.output_next_pic_info(picture_id)
 
     def handle_answer_response(self, flow: HTTPFlow, session_id: str) -> None:
         current_picture_id = self.game_state.get(session_id)
@@ -268,11 +269,10 @@ class Guessr:
         to_spreadsheet = "\t".join(map(str, guess))
         self.events_out.write(to_spreadsheet)
         if current_picture_id is not None:
-            new_count = self.guesses.add_guess(guess)
-            self.events_out.write(f"guess count (pic, total): {new_count}")
+            self.guesses.add_guess(guess)
         if new_picture_id:
             self.game_state[session_id] = new_picture_id
-            self.output_pic_info(new_picture_id)
+            self.output_next_pic_info(new_picture_id)
         else:
             self.events_out.write("No new picture id given in response, game is over")
 
