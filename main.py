@@ -222,6 +222,8 @@ class Guessr:
         if picture_id:
             self.events_out.write(f"{picture_id = }")
             self.game_state[session_id] = picture_id
+            location_estimate = self.guesses.estimate_true_location(picture_id)
+            self.events_out.write(f"{location_estimate = }")
 
     def handle_answer_response(self, flow: HTTPFlow, session_id: str) -> None:
         current_picture_id = self.game_state.get(session_id)
@@ -237,18 +239,20 @@ class Guessr:
         # Information given in response
         if response_json and isinstance(response_json, dict):
             score = response_json.get("score")
-            picture_id = response_json.get("nextPicture")
+            new_picture_id = response_json.get("nextPicture")
         else:
-            score = picture_id = None
+            score = new_picture_id = None
         guess = (current_picture_id, answer_lat, answer_lon, score)
         to_spreadsheet = "\t".join(map(str, guess))
         self.events_out.write(to_spreadsheet)
         if current_picture_id is not None:
             new_count = self.guesses.add_guess(guess)
             self.events_out.write(f"guess count (pic, total): {new_count}")
-        if picture_id:
-            self.game_state[session_id] = picture_id
-            self.events_out.write(f"New picture id: {picture_id}")
+        if new_picture_id:
+            self.game_state[session_id] = new_picture_id
+            self.events_out.write(f"New picture id: {new_picture_id}")
+            location_estimate = self.guesses.estimate_true_location(new_picture_id)
+            self.events_out.write(f"{location_estimate = }")
         else:
             self.events_out.write("No new picture id given in response, game is over")
 
@@ -271,7 +275,6 @@ class Guessr:
             return
         self.events_out.write(f"{current_picture_id = }")
         location_estimate = self.guesses.estimate_true_location(current_picture_id)
-        self.events_out.write(f"{location_estimate = }")
 
 
 events_out = EventsOut(EVENTS_FILE)
