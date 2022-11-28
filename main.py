@@ -15,6 +15,7 @@ BACKUPS_DIR = "backups"
 Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
+#  * Capture each picture
 #  * Use perfect locations (30k score)
 #  * Send estimates when 1) perfect scores not available and 2) estimate available
 
