@@ -170,6 +170,20 @@ def try_read_json(flow: HTTPFlow) -> tuple:
     return tuple(bodies)
 
 
+def replace_request_json(flow: HTTPFlow, body: dict) -> None:
+    """Replaces the current request body with the given dict in JSON format."""
+    if (
+        flow.request is None
+        or flow.request.text is None
+        or not has_json_content_type(flow.request)
+    ):
+        ValueError(
+            "Not able to write JSON. Request or body not available, or content type not set."
+        )
+    request_text = json.dumps(body)
+    flow.request.text = request_text
+
+
 class Guessr:
     def __init__(
         self,
@@ -275,6 +289,11 @@ class Guessr:
             return
         self.events_out.write(f"{current_picture_id = }")
         location_estimate = self.guesses.estimate_true_location(current_picture_id)
+        if location_estimate:
+            lat, lon = location_estimate
+            new_body = {"lat": lat, "lon": lon}
+            replace_request_json(flow, new_body)
+            self.events_out.write("Replaced answer location")
 
 
 events_out = EventsOut(EVENTS_FILE)
