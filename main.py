@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from pprint import pformat
 
 import pandas as pd
 from mitmproxy.http import HTTPFlow, Request, Response
@@ -202,6 +203,15 @@ class Guessr:
         # Clear output
         self.events_out.clear()
 
+    def output_pic_info(self, pic: str):
+        self.events_out.write(f"Picture id: {pic}")
+        existing_guesses = self.guesses.get_guesses(pic)
+        guesses_pretty = pformat(existing_guesses)
+        self.events_out.write("existing guesses:")
+        self.events_out.write(guesses_pretty)
+        location_estimate = self.guesses.estimate_true_location(pic)
+        self.events_out.write(f"{location_estimate = }")
+
     def response(self, flow: HTTPFlow) -> None:
         if flow.request.pretty_host != self.host:
             return
@@ -234,10 +244,8 @@ class Guessr:
         else:
             picture_id = None
         if picture_id:
-            self.events_out.write(f"{picture_id = }")
             self.game_state[session_id] = picture_id
-            location_estimate = self.guesses.estimate_true_location(picture_id)
-            self.events_out.write(f"{location_estimate = }")
+            self.output_pic_info(picture_id)
 
     def handle_answer_response(self, flow: HTTPFlow, session_id: str) -> None:
         current_picture_id = self.game_state.get(session_id)
@@ -264,9 +272,7 @@ class Guessr:
             self.events_out.write(f"guess count (pic, total): {new_count}")
         if new_picture_id:
             self.game_state[session_id] = new_picture_id
-            self.events_out.write(f"New picture id: {new_picture_id}")
-            location_estimate = self.guesses.estimate_true_location(new_picture_id)
-            self.events_out.write(f"{location_estimate = }")
+            self.output_pic_info(new_picture_id)
         else:
             self.events_out.write("No new picture id given in response, game is over")
 
