@@ -17,7 +17,7 @@ column_names = [
 ]
 
 
-def add_guesses_to_df(df: pd.DataFrame, rows: list[list]):
+def add_guesses_to_df(df: pd.DataFrame, rows: list[list]) -> pd.DataFrame:
     """Add valid guesses to dataframe, returning the new df
     """
     def valid_run(rows: list[list]):
@@ -47,7 +47,7 @@ def add_guesses_to_df(df: pd.DataFrame, rows: list[list]):
     return pd.concat([df, new_guesses_df])
 
 
-def get_from_excel():
+def get_from_excel() -> pd.DataFrame:
     df_guesses = pd.DataFrame()
     print(df_guesses)
     with xw.Book(xlsx_filepath) as book:

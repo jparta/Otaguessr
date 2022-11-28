@@ -18,7 +18,7 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 #  * Capture each picture
 #  * Send estimates when 1) perfect scores not available and 2) estimate available
 
-def valid_guess_row(row: tuple | list):
+def valid_guess_row(row: tuple | list) -> bool:
     """Validate to be
     string id, latitude, longitude, numeric score
     """
@@ -41,14 +41,14 @@ def valid_guess_row(row: tuple | list):
 
 
 class EventsOut():
-    def __init__(self, filepath) -> None:
+    def __init__(self, filepath: str | Path) -> None:
         self.filepath = filepath
 
-    def clear(self):
+    def clear(self) -> None:
         with open(self.filepath, "w"):
             pass
 
-    def write(self, line):
+    def write(self, line: str) -> None:
         with open(self.filepath, "a") as f:
             print(line, file=f)
 
@@ -92,7 +92,7 @@ class Guesses():
         else:
             return True
 
-    def create_backup(self):
+    def create_backup(self) -> None:
         filestem = self.filepath.stem
         new_stem = filestem + self.backup_filestem_suffix()
         backup_filename = self.filepath.with_stem(new_stem).name
@@ -119,7 +119,7 @@ class Guesses():
         guesses_now = self.get_guesses(pic)
         return len(guesses_now), len(self.df)
 
-    def estimate_true_location(self, pic: str) -> tuple | None:
+    def estimate_true_location(self, pic: str) -> tuple[float, float] | None:
         """Return estimate for location (lat, lon)
         if there are at least three previous guesses,
         otherwise return None.
@@ -140,9 +140,13 @@ class Guesses():
             return None
 
 
-def has_json_content_type(event: Request | Response):
+def has_json_content_type(event: Request | Response) -> bool:
     content_type = event.headers.get("Content-Type")
-    return content_type and content_type.startswith("application/json")
+    return (
+        content_type is not None and
+        isinstance(content_type, str) and
+        content_type.startswith("application/json")
+    )
 
 
 def try_read_json(flow: HTTPFlow) -> tuple:
@@ -183,7 +187,7 @@ class Guessr:
         # Clear output
         self.events_out.clear()
 
-    def response(self, flow: HTTPFlow):
+    def response(self, flow: HTTPFlow) -> None:
         if flow.request.pretty_host != self.host:
             return
         self.events_out.write("-------")
@@ -205,7 +209,7 @@ class Guessr:
         else:
             self.events_out.write("No path match")
 
-    def handle_play_response(self, flow: HTTPFlow, session_id: str):
+    def handle_play_response(self, flow: HTTPFlow, session_id: str) -> None:
         _, response_json = try_read_json(flow)
         # First picture's id
         if response_json and isinstance(response_json, dict):
@@ -216,7 +220,7 @@ class Guessr:
             self.events_out.write(f"{picture_id = }")
             self.game_state[session_id] = picture_id
 
-    def handle_answer_response(self, flow: HTTPFlow, session_id: str):
+    def handle_answer_response(self, flow: HTTPFlow, session_id: str) -> None:
         current_picture_id = self.game_state.get(session_id)
         if current_picture_id is None:
             self.events_out.write("No current image found by session id")
@@ -245,7 +249,7 @@ class Guessr:
         else:
             self.events_out.write("No new picture id given in response, game is over")
 
-    def request(self, flow):
+    def request(self, flow: HTTPFlow) -> None:
         if flow.request.pretty_host != self.host:
             return
         self.events_out.write("-------")

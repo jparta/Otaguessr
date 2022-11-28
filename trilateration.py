@@ -1,10 +1,11 @@
 from math import pow, log
+from collections.abc import Iterable, Sequence
 
 from geopy.distance import distance as distance_func
 from scipy.optimize import minimize
 
 
-def score_to_distance(score: int | float):
+def score_to_distance(score: int | float) -> float:
     """Distance from the real answer.
     Derived by finding best fit using different models.
     """
@@ -15,7 +16,7 @@ def score_to_distance(score: int | float):
     return log(score / a) / b
 
 
-def mse(x, locations, distances):
+def mse(x: tuple[float, float], locations: Iterable[tuple[float, float]], distances: Sequence[float]) -> float:
     """Mean squared error for optimization
     """
     mse = 0.0
@@ -25,7 +26,7 @@ def mse(x, locations, distances):
     return mse / len(distances)
 
 
-def trilaterate(guesses: list | tuple):
+def trilaterate(guesses: list | tuple) -> tuple[float, float]:
     """Find the real location by trilateration.
     Takes guesses of form (pic, lat, lon, score).
     """

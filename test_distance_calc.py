@@ -11,7 +11,7 @@ points = [
     ("d6d73e4d84c92f8c5fff4340a5dce12f", 60.18508505, 24.83578026, 27669),
 ]
 
-def score_to_distance(score: int | float):
+def score_to_distance(score: int | float) -> float:
     """Distance from the real answer.
     Derived by finding best fit using different models.
     """
@@ -21,7 +21,7 @@ def score_to_distance(score: int | float):
     b = -0.005
     return log(score / a) / b
 
-def mse(x, locations, distances):
+def mse(x, locations, distances) -> float:
     mse = 0.0
     for location, distance in zip(locations, distances):
         distance_calculated = distance_func(x, location).meters
