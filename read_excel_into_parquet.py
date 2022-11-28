@@ -9,17 +9,12 @@ from main import valid_guess_row, GUESSES_FILE
 xlsx_filepath = r"C:\Users\jopa0\OneDrive\Spreadsheets\Otaguessr.xlsx"
 summary_sheet = "Distance to score and v.v."
 table_upper_left = "B3"
-column_names = [
-    "pic",
-    "lat",
-    "lon",
-    "score"
-]
+column_names = ["pic", "lat", "lon", "score"]
 
 
 def add_guesses_to_df(df: pd.DataFrame, rows: list[list]) -> pd.DataFrame:
-    """Add valid guesses to dataframe, returning the new df
-    """
+    """Add valid guesses to dataframe, returning the new df"""
+
     def valid_run(rows: list[list]):
         firsts = [row[0] for row in rows]
         return len(set(firsts)) == 1

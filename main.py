@@ -18,29 +18,30 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 #  * Capture each picture
 #  * Send estimates when 1) perfect scores not available and 2) estimate available
 
+
 def valid_guess_row(row: tuple | list) -> bool:
     """Validate to be
     string id, latitude, longitude, numeric score
     """
     length = 4
     if (
-        isinstance(row, (tuple, list)) and
-        len(row) == length and
-        isinstance(row[0], str) and
-        row[0] != "None" and
-        isinstance(row[1], float) and
-        -90 <= row[1] <= 90 and
-        isinstance(row[2], float) and
-        -180 <= row[2] <= 180 and
-        isinstance(row[3], (float, int)) and
-        0 <= row[3] <= 30000
+        isinstance(row, (tuple, list))
+        and len(row) == length
+        and isinstance(row[0], str)
+        and row[0] != "None"
+        and isinstance(row[1], float)
+        and -90 <= row[1] <= 90
+        and isinstance(row[2], float)
+        and -180 <= row[2] <= 180
+        and isinstance(row[3], (float, int))
+        and 0 <= row[3] <= 30000
     ):
         return True
     else:
         return False
 
 
-class EventsOut():
+class EventsOut:
     def __init__(self, filepath: str | Path) -> None:
         self.filepath = filepath
 
@@ -53,7 +54,7 @@ class EventsOut():
             print(line, file=f)
 
 
-class Guesses():
+class Guesses:
     backup_time_format = "%Y-%m-%dT%H-%M-%S-%Z"
 
     def __init__(
@@ -100,7 +101,7 @@ class Guesses():
         self.save_to_file(path=backup_filepath)
 
     def get_guesses(self, pic: str) -> list[tuple]:
-        guesses_df = self.df.loc[self.df.iloc[:,0] == pic]
+        guesses_df = self.df.loc[self.df.iloc[:, 0] == pic]
         guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
         return guesses_tuples
 
@@ -143,9 +144,9 @@ class Guesses():
 def has_json_content_type(event: Request | Response) -> bool:
     content_type = event.headers.get("Content-Type")
     return (
-        content_type is not None and
-        isinstance(content_type, str) and
-        content_type.startswith("application/json")
+        content_type is not None
+        and isinstance(content_type, str)
+        and content_type.startswith("application/json")
     )
 
 
@@ -199,7 +200,9 @@ class Guessr:
         else:
             session_id = None
         if session_id is None:
-            self.events_out.write(f"No session id cookie by key '{self.session_id_cookie_key}'")
+            self.events_out.write(
+                f"No session id cookie by key '{self.session_id_cookie_key}'"
+            )
             return
         self.events_out.write(f"{session_id = }")
         if flow.request.path == self.play_path:
@@ -257,7 +260,9 @@ class Guessr:
         self.events_out.write(f"Method: {flow.request.method}")
         session_id = flow.request.cookies.get(self.session_id_cookie_key)
         if session_id is None:
-            self.events_out.write(f"No session id cookie by key '{self.session_id_cookie_key}'")
+            self.events_out.write(
+                f"No session id cookie by key '{self.session_id_cookie_key}'"
+            )
             return
         self.events_out.write(f"{session_id = }")
         current_picture_id = self.game_state.get(session_id)

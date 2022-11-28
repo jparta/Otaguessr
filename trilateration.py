@@ -16,9 +16,12 @@ def score_to_distance(score: int | float) -> float:
     return log(score / a) / b
 
 
-def mse(x: tuple[float, float], locations: Iterable[tuple[float, float]], distances: Sequence[float]) -> float:
-    """Mean squared error for optimization
-    """
+def mse(
+    x: tuple[float, float],
+    locations: Iterable[tuple[float, float]],
+    distances: Sequence[float],
+) -> float:
+    """Mean squared error for optimization"""
     mse = 0.0
     for location, distance in zip(locations, distances):
         distance_calculated = distance_func(x, location).meters
@@ -43,10 +46,8 @@ def trilaterate(guesses: list | tuple) -> tuple[float, float]:
         mse,
         initial_location,
         args=(locations, distances),
-        method='L-BFGS-B',
-        options={
-            'ftol':1e-5,
-            'maxiter': 1e+7
-        })
+        method="L-BFGS-B",
+        options={"ftol": 1e-5, "maxiter": 1e7},
+    )
     estimated_location = tuple(result.x)
     return estimated_location
