@@ -16,7 +16,6 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
 #  * Capture each picture
-#  * Use perfect locations (30k score)
 #  * Send estimates when 1) perfect scores not available and 2) estimate available
 
 def valid_guess_row(row: tuple | list):
@@ -126,6 +125,14 @@ class Guesses():
         otherwise return None.
         """
         guesses = self.get_guesses(pic)
+        # Check for perfect scores
+        for guess in guesses:
+            score = guess[3]
+            if score == 30000:
+                lat = guess[1]
+                lon = guess[2]
+                return (lat, lon)
+        # No perfect score yet, estimate
         if len(guesses) >= 3:
             estimate = trilaterate(guesses)
             return estimate
