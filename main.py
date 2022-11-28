@@ -54,7 +54,7 @@ class EventsOut():
 
 
 class Guesses():
-    back_time_format = "%Y-%m-%dT%H-%M-%S-%Z"
+    backup_time_format = "%Y-%m-%dT%H-%M-%S-%Z"
 
     def __init__(
         self,
@@ -73,12 +73,12 @@ class Guesses():
 
     def backup_filestem_suffix(self):
         now_utc_aware = datetime.utcnow().replace(tzinfo=timezone.utc)
-        time_string = now_utc_aware.strftime(self.back_time_format)
+        time_string = now_utc_aware.strftime(self.backup_time_format)
         return f"_backup_{time_string}"
 
     def backup_filestem_time_parse(self, stem: str):
         time_string = stem.split("_")[-1]
-        return datetime.strptime(time_string, self.back_time_format)
+        return datetime.strptime(time_string, self.backup_time_format)
 
     def time_to_create_backup(self) -> bool:
         now = datetime.utcnow()
