@@ -17,7 +17,7 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
 #  * Capture each picture
-#  * Send estimates when 1) perfect scores not available and 2) estimate available
+#  * When replacing answer with estimate, tell how far the manual guess was or its predicted score
 
 
 def valid_guess_row(row: tuple | list) -> bool:
@@ -296,10 +296,13 @@ class Guessr:
         self.events_out.write(f"{current_picture_id = }")
         location_estimate = self.guesses.estimate_true_location(current_picture_id)
         if location_estimate:
+            old, _ = try_read_json(flow)
             lat, lon = location_estimate
             new_body = {"lat": lat, "lon": lon}
             replace_request_json(flow, new_body)
             self.events_out.write("Replaced answer location")
+            self.events_out.write(f"was: {old}")
+            self.events_out.write(f"new: {new_body}")
 
 
 events_out = EventsOut(EVENTS_FILE)
