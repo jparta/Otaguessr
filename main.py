@@ -18,6 +18,7 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
 #  * If trilateration doesn't produce a perfect score, the data could be poisoned by a manual data entry mistake. Delete existing data points. Alternatively, develop trilateration further by picking the highest performing three points.
+#  * Only allow GET and POST
 #  * Before adding guess, check if the pic already has a guess with a perfect score
 #  * Capture each picture
 #  * See if there are duplicate locations on different pics
@@ -308,13 +309,15 @@ class Guessr:
             likely_distance_of_old = GeodesicDistance(
                 (old_lat, old_lon), (new_lat, new_lon)
             ).meters
+            old_formatted = f"({old_lat:.6f}, {old_lon:.6f})"
+            new_formatted = f"({new_lat:.6f}, {new_lon:.6f})"
             likely_points_of_old = distance_to_score(likely_distance_of_old)
             self.events_out.write("Replaced answer location")
             self.events_out.write(
-                f"was: {old}, likely with {likely_distance_of_old:.1f} meters distance and a score of {likely_points_of_old:.0f}"
+                f"was: {old_formatted}, likely with {likely_distance_of_old:.1f} meters distance and a score of {likely_points_of_old:.0f}"
             )
             self.events_out.write(
-                f"new: {new_body}, likely with close to 0 meters distance and a score of {distance_to_score(0):.0f}"
+                f"new: {new_formatted}, likely with close to 0 meters distance and a score of {distance_to_score(0):.0f}"
             )
 
 
