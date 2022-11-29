@@ -280,6 +280,29 @@ class Guessr:
         else:
             self.events_out.write("No new picture id given in response, game is over")
 
+    def replace_body_with_estimate(
+        self, flow: HTTPFlow, location_estimate: tuple[float, float]
+    ):
+        # Replace answer body with good estimate
+        old, _ = try_read_json(flow)
+        new_lat, new_lon = location_estimate
+        new_body = {"lat": new_lat, "lon": new_lon}
+        replace_request_json(flow, new_body)
+        old_lat, old_lon = old["lat"], old["lon"]
+        likely_distance_of_old = GeodesicDistance(
+            (old_lat, old_lon), (new_lat, new_lon)
+        ).meters
+        old_formatted = f"({old_lat:.6f}, {old_lon:.6f})"
+        new_formatted = f"({new_lat:.6f}, {new_lon:.6f})"
+        likely_points_of_old = distance_to_score(likely_distance_of_old)
+        self.events_out.write("Replaced answer location")
+        self.events_out.write(
+            f"was: {old_formatted}, likely with {likely_distance_of_old:.1f} meters distance and a score of {likely_points_of_old:.0f}"
+        )
+        self.events_out.write(
+            f"new: {new_formatted}, likely with close to 0 meters distance and a score of {distance_to_score(0):.0f}"
+        )
+
     def request(self, flow: HTTPFlow) -> None:
         if flow.request.pretty_host != self.host:
             return
@@ -300,25 +323,7 @@ class Guessr:
         self.events_out.write(f"{current_picture_id = }")
         location_estimate = self.guesses.estimate_true_location(current_picture_id)
         if location_estimate:
-            # Replace answer body with good estimate
-            old, _ = try_read_json(flow)
-            new_lat, new_lon = location_estimate
-            new_body = {"lat": new_lat, "lon": new_lon}
-            replace_request_json(flow, new_body)
-            old_lat, old_lon = old["lat"], old["lon"]
-            likely_distance_of_old = GeodesicDistance(
-                (old_lat, old_lon), (new_lat, new_lon)
-            ).meters
-            old_formatted = f"({old_lat:.6f}, {old_lon:.6f})"
-            new_formatted = f"({new_lat:.6f}, {new_lon:.6f})"
-            likely_points_of_old = distance_to_score(likely_distance_of_old)
-            self.events_out.write("Replaced answer location")
-            self.events_out.write(
-                f"was: {old_formatted}, likely with {likely_distance_of_old:.1f} meters distance and a score of {likely_points_of_old:.0f}"
-            )
-            self.events_out.write(
-                f"new: {new_formatted}, likely with close to 0 meters distance and a score of {distance_to_score(0):.0f}"
-            )
+            self.replace_body_with_estimate(flow, location_estimate)
 
 
 events_out = EventsOut(EVENTS_FILE)
