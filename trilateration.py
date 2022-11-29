@@ -1,4 +1,4 @@
-from math import pow, log
+from math import pow, log, exp
 from collections.abc import Iterable, Sequence
 
 from geopy.distance import distance as distance_func
@@ -14,6 +14,17 @@ def score_to_distance(score: int | float) -> float:
     a = 30000
     b = -0.005
     return log(score / a) / b
+
+
+def distance_to_score(distance: int | float):
+    """Score gotten when at a certain distance from the real answer.
+    Derived by finding best fit using different models.
+    """
+    if distance < 0:
+        raise ValueError("Distance has to be 0 or positive")
+    a = 30000
+    b = -0.005
+    return a * exp(b * distance)
 
 
 def mse(

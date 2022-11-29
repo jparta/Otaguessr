@@ -4,9 +4,10 @@ from pathlib import Path
 from pprint import pformat
 
 import pandas as pd
+from geopy.distance import GeodesicDistance
 from mitmproxy.http import HTTPFlow, Request, Response
 
-from trilateration import trilaterate
+from trilateration import trilaterate, distance_to_score
 
 
 EVENTS_FILE = "whats_going_on.txt"
@@ -16,8 +17,10 @@ BACKUPS_DIR = "backups"
 Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
+#  * If trilateration doesn't produce a perfect score, the data could be poisoned by a manual data entry mistake. Delete existing data points. Alternatively, develop trilateration further by picking the highest performing three points.
+#  * Before adding guess, check if the pic already has a guess with a perfect score
 #  * Capture each picture
-#  * When replacing answer with estimate, tell how far the manual guess was or its predicted score
+#  * See if there are duplicate locations on different pics
 
 
 def valid_guess_row(row: tuple | list) -> bool:
@@ -296,13 +299,23 @@ class Guessr:
         self.events_out.write(f"{current_picture_id = }")
         location_estimate = self.guesses.estimate_true_location(current_picture_id)
         if location_estimate:
+            # Replace answer body with good estimate
             old, _ = try_read_json(flow)
-            lat, lon = location_estimate
-            new_body = {"lat": lat, "lon": lon}
+            new_lat, new_lon = location_estimate
+            new_body = {"lat": new_lat, "lon": new_lon}
             replace_request_json(flow, new_body)
+            old_lat, old_lon = old["lat"], old["lon"]
+            likely_distance_of_old = GeodesicDistance(
+                (old_lat, old_lon), (new_lat, new_lon)
+            ).meters
+            likely_points_of_old = distance_to_score(likely_distance_of_old)
             self.events_out.write("Replaced answer location")
-            self.events_out.write(f"was: {old}")
-            self.events_out.write(f"new: {new_body}")
+            self.events_out.write(
+                f"was: {old}, likely with {likely_distance_of_old:.1f} meters distance and a score of {likely_points_of_old:.0f}"
+            )
+            self.events_out.write(
+                f"new: {new_body}, likely with close to 0 meters distance and a score of {distance_to_score(0):.0f}"
+            )
 
 
 events_out = EventsOut(EVENTS_FILE)
