@@ -19,7 +19,8 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 # TODO:
 #  * If trilateration doesn't produce a perfect score, the data could be poisoned by a manual data entry mistake. Delete existing data points. Alternatively, develop trilateration further by picking the highest performing three points.
 #  * Only allow GET and POST
-#  * Before adding guess, check if the pic already has a guess with a perfect score
+#  * Create guess class so that guess elements are not accessed by index
+#  * Store score range in a constant to reduce magic numbers
 #  * Capture each picture
 #  * See if there are duplicate locations on different pics
 
@@ -112,6 +113,10 @@ class Guesses:
         guesses_df = self.df.loc[self.df.iloc[:, 0] == pic]
         guesses_tuples = list(guesses_df.itertuples(index=False, name=None))
         return guesses_tuples
+
+    def has_perfect_guess(self, pic: str) -> bool:
+        guesses = self.get_guesses(pic)
+        return any(guess[3] == 30000 for guess in guesses)
 
     def add_guess(self, guess: tuple | list) -> None:
         """Add guess, if valid, to the pile."""
@@ -272,7 +277,7 @@ class Guessr:
         guess = (current_picture_id, answer_lat, answer_lon, score)
         to_spreadsheet = "\t".join(map(str, guess))
         self.events_out.write(to_spreadsheet)
-        if current_picture_id is not None:
+        if guess[0] is not None and not self.guesses.has_perfect_guess(guess[0]):
             self.guesses.add_guess(guess)
         if new_picture_id:
             self.game_state[session_id] = new_picture_id
