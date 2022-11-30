@@ -206,7 +206,7 @@ class Guessr:
         self.paths = [self.play_path, self.answer_path]
         self.session_id_cookie_key = "connect.sid"
         # Game state maps session ID (game ID) to current picture (question / challenge)
-        self.game_state: dict[str, str] = {}
+        self.current_pic: str | None = None
         # Clear output
         self.events_out.clear()
 
@@ -228,25 +228,14 @@ class Guessr:
         self.events_out.write("-------")
         self.events_out.write(f"Response: {flow.request.pretty_url}")
         self.events_out.write(f"Method: {flow.request.method}")
-        if flow.response:
-            session_cookie = flow.response.cookies.get(self.session_id_cookie_key)
-            session_id = session_cookie[0] if session_cookie else None
-        else:
-            session_id = None
-        if session_id is None:
-            self.events_out.write(
-                f"No session id cookie by key '{self.session_id_cookie_key}'"
-            )
-            return
-        self.events_out.write(f"{session_id = }")
         if flow.request.path == self.play_path:
-            self.handle_play_response(flow, session_id)
+            self.handle_play_response(flow)
         elif flow.request.path == self.answer_path:
-            self.handle_answer_response(flow, session_id)
+            self.handle_answer_response(flow)
         else:
             self.events_out.write("No path match")
 
-    def handle_play_response(self, flow: HTTPFlow, session_id: str) -> None:
+    def handle_play_response(self, flow: HTTPFlow) -> None:
         _, response_json = try_read_json(flow)
         # First picture's id
         if response_json and isinstance(response_json, dict):
@@ -254,12 +243,11 @@ class Guessr:
         else:
             picture_id = None
         if picture_id:
-            self.game_state[session_id] = picture_id
+            self.current_pic = picture_id
             self.output_next_pic_info(picture_id)
 
-    def handle_answer_response(self, flow: HTTPFlow, session_id: str) -> None:
-        current_picture_id = self.game_state.get(session_id)
-        if current_picture_id is None:
+    def handle_answer_response(self, flow: HTTPFlow) -> None:
+        if self.current_pic is None:
             self.events_out.write("No current image found by session id")
         request_json, response_json = try_read_json(flow)
         # Coordinates in answer
@@ -274,16 +262,18 @@ class Guessr:
             new_picture_id = response_json.get("nextPicture")
         else:
             score = new_picture_id = None
-        guess = (current_picture_id, answer_lat, answer_lon, score)
+        guess = (self.current_pic, answer_lat, answer_lon, score)
         to_spreadsheet = "\t".join(map(str, guess))
         self.events_out.write(to_spreadsheet)
         if guess[0] is not None and not self.guesses.has_perfect_guess(guess[0]):
             self.guesses.add_guess(guess)
         if new_picture_id:
-            self.game_state[session_id] = new_picture_id
+            self.current_pic = new_picture_id
             self.output_next_pic_info(new_picture_id)
         else:
             self.events_out.write("No new picture id given in response, game is over")
+            # Don't carry current pic over to next game
+            self.current_pic = None
 
     def replace_body_with_estimate(
         self, flow: HTTPFlow, location_estimate: tuple[float, float]
@@ -314,19 +304,11 @@ class Guessr:
         self.events_out.write("-------")
         self.events_out.write(f"Request: {flow.request.pretty_url}")
         self.events_out.write(f"Method: {flow.request.method}")
-        session_id = flow.request.cookies.get(self.session_id_cookie_key)
-        if session_id is None:
-            self.events_out.write(
-                f"No session id cookie by key '{self.session_id_cookie_key}'"
-            )
+        if self.current_pic is None:
+            self.events_out.write("No current picture")
             return
-        self.events_out.write(f"{session_id = }")
-        current_picture_id = self.game_state.get(session_id)
-        if current_picture_id is None:
-            self.events_out.write("No current picture found by session id")
-            return
-        self.events_out.write(f"{current_picture_id = }")
-        location_estimate = self.guesses.estimate_true_location(current_picture_id)
+        self.events_out.write(f"{self.current_pic = }")
+        location_estimate = self.guesses.estimate_true_location(self.current_pic)
         if location_estimate:
             self.replace_body_with_estimate(flow, location_estimate)
 
