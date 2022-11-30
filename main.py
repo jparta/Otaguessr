@@ -18,7 +18,6 @@ Path(BACKUPS_DIR).mkdir(exist_ok=True)
 
 # TODO:
 #  * If trilateration doesn't produce a perfect score, the data could be poisoned by a manual data entry mistake. Delete existing data points. Alternatively, develop trilateration further by picking the highest performing three points.
-#  * Only allow GET and POST
 #  * Create guess class so that guess elements are not accessed by index
 #  * Store score range in a constant to reduce magic numbers
 #  * Capture each picture
@@ -200,6 +199,7 @@ class Guessr:
     ) -> None:
         self.events_out = events_out
         self.guesses = guesses
+        self.methods = ("GET", "POST")
         self.host = "api.otaguessr.fi"
         self.play_path = "/api/play"
         self.answer_path = "/api/answer"
@@ -223,7 +223,10 @@ class Guessr:
         self.events_out.write(f"{location_estimate = }")
 
     def response(self, flow: HTTPFlow) -> None:
-        if flow.request.pretty_host != self.host:
+        if (
+            flow.request.pretty_host != self.host
+            or flow.request.method not in self.methods
+        ):
             return
         self.events_out.write("-------")
         self.events_out.write(f"Response: {flow.request.pretty_url}")
@@ -299,7 +302,10 @@ class Guessr:
         )
 
     def request(self, flow: HTTPFlow) -> None:
-        if flow.request.pretty_host != self.host:
+        if (
+            flow.request.pretty_host != self.host
+            or flow.request.method not in self.methods
+        ):
             return
         self.events_out.write("-------")
         self.events_out.write(f"Request: {flow.request.pretty_url}")
